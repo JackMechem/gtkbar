@@ -1,0 +1,76 @@
+* {
+	font-family: "Iosevka";
+}
+
+button {
+	all: unset;
+	padding: 0px 12px;
+	margin: 5px 2px;
+	min-height: 0;
+	min-width: 0;
+	background: transparent;
+	transition-duration: 0ms;
+}
+
+button:focus {
+	outline: none;
+	box-shadow: none;
+}
+
+button:hover {
+	background-color: @borders;
+}
+
+.workspace {
+	border-radius: 90px;
+}
+
+.active-workspace {
+	background-color: @theme_selected_bg_color;
+	color: @theme_selected_fg_color;
+}
+
+.active-workspace:hover {
+	background-color: @theme_selected_bg_color;
+}
+
+.window {
+	margin: 5px 0px;
+}
+
+.widget {
+	border-radius: 90px;
+	padding: 8px 15px;
+}
+
+.widget:hover {
+	background-color: @borders;
+}
+
+label {
+	font-weight: 600;
+	font-size: 14px;
+}
+
+.volume-window {
+	border-radius: 50px;
+	margin-top: 20px;
+	border: 2px solid @borders;
+	opacity: 0.9;
+}
+.volume-popup {
+	border-radius: 90px;
+	padding: 10px 15px;
+}
+
+.volume-popup-level-bar {
+	margin: 8px 0px;
+}
+
+levelbar block {
+	border-radius: 90px;
+}
+
+.volume-overboost {
+	color: red;
+}
