@@ -3,11 +3,14 @@
 #include "glib.h"
 #include "gtk/gtk.h"
 #include "gtk/gtkshortcut.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 static GtkWidget *popup = NULL;
 static GtkWidget *level_bar = NULL;
 static guint timeout_id = 0;
 static GtkWidget *volumeIcon;
+static GtkWidget *volumeLabel;
 
 gboolean hide_popup(gpointer data) {
 	gtk_widget_hide(popup);
@@ -15,7 +18,7 @@ gboolean hide_popup(gpointer data) {
 	return G_SOURCE_REMOVE;
 }
 
-GtkWidget *create_volume_overlay(const char *text) {
+GtkWidget *create_volume_overlay() {
 	popup = gtk_window_new();
 	gtk_window_set_decorated(GTK_WINDOW(popup), FALSE);
 	gtk_window_set_resizable(GTK_WINDOW(popup), FALSE);
@@ -80,16 +83,18 @@ GtkWidget *create_volume_overlay(const char *text) {
 	gtk_box_append(GTK_BOX(box), level_bar);
 	gtk_widget_add_css_class(level_bar, "volume-popup-level-bar");
 
+	char *volume_str = malloc(8);
+	snprintf(volume_str, sizeof(volume_str), "%d%%", volume);
+	volumeLabel = gtk_label_new(volume_str);
+	gtk_box_append(GTK_BOX(box), volumeLabel);
+	free(volume_str);
+
 	return GTK_WIDGET(popup);
 }
 void show_volume_popup(int volume) {
 	if (!popup) {
-
-		char text[32];
-		snprintf(text, sizeof(text), "%d%%", volume);
-
-		GtkWidget *popup = create_volume_overlay(text);
-		gtk_widget_show(popup);
+		GtkWidget *popup = create_volume_overlay();
+		gtk_widget_set_visible(popup, TRUE);
 	}
 
 	// Update the volume bar
@@ -121,7 +126,12 @@ void show_volume_popup(int volume) {
 		gtk_image_set_from_icon_name(GTK_IMAGE(volumeIcon),
 									 "audio-volume-high-symbolic");
 	}
-	gtk_widget_show(popup);
+	gtk_widget_set_visible(popup, TRUE);
+
+	char *volume_str = malloc(8);
+	snprintf(volume_str, sizeof(volume_str), "%d%%", volume);
+	gtk_label_set_text(GTK_LABEL(volumeLabel), volume_str);
+	free(volume_str);
 
 	// Reset timer
 	if (timeout_id > 0)

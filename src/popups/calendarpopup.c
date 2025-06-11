@@ -1,9 +1,10 @@
 #include "calendarpopup.h"
 #include "gtk/gtk.h"
+#include "popupposition.h"
 
 #include <graphene-gobject.h>
 static GtkWindow *popup_window = NULL;
-static const int POPUP_WIDTH = 250;
+static const int POPUP_WIDTH = 360;
 static const int POPUP_HEIGHT = 250;
 
 void calendar_popup_toggle(GtkWidget *anchor) {
@@ -26,25 +27,20 @@ void calendar_popup_toggle(GtkWidget *anchor) {
 	gtk_layer_auto_exclusive_zone_enable(popup_window);
 
 	gtk_layer_set_anchor(popup_window, GTK_LAYER_SHELL_EDGE_TOP, TRUE);
-	gtk_layer_set_anchor(popup_window, GTK_LAYER_SHELL_EDGE_LEFT, TRUE);
 
-	GdkDisplay *display = gdk_display_get_default();
-	GdkSurface *surface = gtk_native_get_surface(gtk_widget_get_native(anchor));
-	if (!surface)
-		return;
-	GdkDevice *device =
-		gdk_seat_get_pointer(gdk_display_get_default_seat(display));
-	if (!device)
-		return;
+	int pixels_from_right = get_distance(anchor, POPUP_WIDTH);
 
-	double x = 0, y = 0;
-	GdkModifierType mask;
-	gdk_surface_get_device_position(surface, device, &x, &y, &mask);
-
-	gtk_layer_set_margin(popup_window, GTK_LAYER_SHELL_EDGE_LEFT,
-						 (int)x - POPUP_WIDTH);
+	if (pixels_from_right == -1) {
+		gtk_layer_set_anchor(popup_window, GTK_LAYER_SHELL_EDGE_RIGHT, TRUE);
+		gtk_layer_set_margin(popup_window, GTK_LAYER_SHELL_EDGE_RIGHT, 0);
+	} else {
+		gtk_layer_set_anchor(popup_window, GTK_LAYER_SHELL_EDGE_LEFT, TRUE);
+		gtk_layer_set_margin(popup_window, GTK_LAYER_SHELL_EDGE_LEFT,
+							 pixels_from_right);
+	}
 
 	GtkWidget *calendar = gtk_calendar_new();
+	gtk_widget_add_css_class(GTK_WIDGET(popup_window), "popup-window");
 	gtk_window_set_child(popup_window, calendar);
 
 	gtk_window_present(popup_window);

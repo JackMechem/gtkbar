@@ -1,11 +1,10 @@
 * {
-	font-family: "Iosevka";
 }
 
 button {
 	all: unset;
-	padding: 0px 12px;
-	margin: 5px 2px;
+	padding: 0px 8px;
+	margin: 10px 0px;
 	min-height: 0;
 	min-width: 0;
 	background: transparent;
@@ -18,16 +17,60 @@ button:focus {
 }
 
 button:hover {
+	filter: brightness(120%);
+	transition-duration: 200ms;
+}
+
+label {
+	font-weight: 600;
+	font-size: 16px;
+}
+
+.workspace-box {
+	border-radius: 90px;
+	padding: 0 8px;
+}
+
+.workspace-box:hover {
 	background-color: @borders;
+	transition-duration: 200ms;
 }
 
 .workspace {
 	border-radius: 90px;
+	opacity: 0.2;
+	background-color: @theme_fg_color;
+	margin: 12px 3px;
+	padding: 0 6px;
+}
+
+.workspace:hover {
+	opacity: 0.4;
+	transition-duration: 200ms;
+}
+
+.workspace label {
+	font-size: 0px;
+}
+
+.open-workspace {
+	background-color: @theme_selected_bg_color;
+	border-radius: 90px;
+	opacity: 0.5;
+	margin: 12px 3px;
+	padding: 0 6px;
+}
+
+.open-workspace label {
+	font-size: 0px;
 }
 
 .active-workspace {
 	background-color: @theme_selected_bg_color;
 	color: @theme_selected_fg_color;
+	padding: 0 20px;
+	opacity: 1;
+	margin: 10px 3px;
 }
 
 .active-workspace:hover {
@@ -35,7 +78,11 @@ button:hover {
 }
 
 .window {
-	margin: 5px 0px;
+	padding: 3px;
+	background-color: #181616;
+	margin: 5px 5px 0 5px;
+	border-radius: 90px;
+	background-color: rgba(24, 22, 22, 0.8);
 }
 
 .widget {
@@ -47,19 +94,14 @@ button:hover {
 	background-color: @borders;
 }
 
-label {
-	font-weight: 600;
-	font-size: 14px;
-}
-
 .volume-window {
-	border-radius: 50px;
+	border-radius: 90px;
 	margin-top: 20px;
-	border: 2px solid @borders;
-	opacity: 0.9;
+	/*border: 2px solid @borders; */
+	background-color: rgba(24, 22, 22, 0.5);
 }
 .volume-popup {
-	border-radius: 90px;
+	border-radius: 13px;
 	padding: 10px 15px;
 }
 
@@ -73,4 +115,160 @@ levelbar block {
 
 .volume-overboost {
 	color: red;
+}
+
+.popup-window {
+	margin: 10px;
+	border-radius: 30px;
+	padding: 10px;
+	box-shadow: 0px 0px 8px -2px @SLATE_700;
+	background-color: rgba(24, 22, 22, 0.5);
+}
+.popup-window calendar {
+	border: none;
+	padding: 0 15px 15px 15px;
+	border-radius: 20px;
+	background-color: @borders;
+}
+
+.popup-window calendar grid label {
+	border-radius: 90px;
+	margin: 2px;
+}
+.popup-window calendar grid label:hover {
+	background-color: @borders;
+}
+
+.popup-window calendar header {
+	border: none;
+}
+
+.popup-window calendar header button {
+	border-radius: 90px;
+	padding: 10px;
+}
+
+.popup-window .ctrlcenter {
+}
+.popup-window .ctrlcenter .volume-box {
+	padding: 0 10px 0 20px;
+}
+.popup-window .ctrlcenter .icon-button {
+	padding: 12px;
+	background-color: @borders;
+	border-radius: 90px;
+}
+.popup-window .ctrlcenter .icon-button:hover {
+	opacity: 0.8;
+}
+
+.popup-window .ctrlcenter .power-box:hover {
+	background-color: @borders;
+	border-radius: 90px;
+}
+
+.popup-window .ctrlcenter .power-box:hover > .icon-button {
+	background-color: @error_color;
+	color: @theme_selected_fg_color;
+}
+
+.popup-window .ctrlcenter .power-box:hover .icon-button {
+	margin: 4px;
+	padding: 8px;
+	transition-duration: 200ms;
+}
+
+.popup-window .ctrlcenter .bottom-rows {
+	background-color: @borders;
+	border-radius: 20px;
+	padding: 10px;
+}
+
+.popup-window .ctrlcenter .bottom-rows .overlay .button {
+	padding: 10px 15px;
+	border-radius: 90px;
+	background-color: @borders;
+	transition-duration: 100ms;
+}
+
+.popup-window .ctrlcenter .bottom-rows .overlay .button:hover {
+	background-color: @theme_selected_bg_color;
+	color: @theme_selected_fg_color;
+}
+
+.popup-window .ctrlcenter .bottom-rows .button label {
+	font-size: 14px;
+}
+
+.popup-window .ctrlcenter .bottom-rows .overlay {
+	border-radius: 90px;
+}
+
+.popup-window .ctrlcenter .bottom-rows .overlay button {
+	border-radius: 90px;
+	padding: 6px;
+	margin-right: 5px;
+	background-color: @theme_base_color;
+	color: @theme_base_fg_color;
+	opacity: 0;
+	transition: opacity 100ms ease-in-out;
+	transition-duration: 100ms;
+	box-shadow: 0px 0px 8px -1px @SLATE_700;
+}
+
+.popup-window .ctrlcenter .bottom-rows .overlay .visible {
+	opacity: 0.5;
+}
+
+.popup-window .ctrlcenter .wifi-devices-scroll {
+	background-color: @borders;
+	border-radius: 20px;
+}
+
+.popup-window .ctrlcenter .wifi-devices-scroll .wifi-devices-scroll-box {
+	padding: 10px 10px;
+}
+
+.popup-window
+	.ctrlcenter
+	.wifi-devices-scroll
+	.wifi-devices-scroll-box
+	box
+	box {
+	background-color: @borders;
+	border-radius: 15px;
+	padding: 10px;
+}
+
+.popup-window
+	.ctrlcenter
+	.wifi-devices-scroll
+	.wifi-devices-scroll-box
+	box
+	box
+	box {
+	background-color: @transparent;
+	border-radius: 0px;
+	padding: 0px;
+}
+
+.popup-window
+	.ctrlcenter
+	.wifi-devices-scroll
+	.wifi-devices-scroll-box
+	.active-network {
+	background-color: @theme_selected_bg_color;
+	color: @theme_selected_fg_color;
+	border-radius: 15px;
+}
+
+.popup-window .ctrlcenter .device-drop {
+	background-color: @borders;
+	border-radius: 20px;
+}
+
+.popup-window .ctrlcenter .app-mixer {
+	background-color: @borders;
+	border-radius: 20px;
+	padding: 10px;
 }
