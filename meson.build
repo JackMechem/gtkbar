@@ -27,15 +27,19 @@ src = [
   'src/popups/ctrlcenterpopup.h',
   'src/popups/mixer.h',
   'src/popups/mixer.c',
+  'src/popups/bt.h',
+  'src/popups/bt.c',
   'src/popups/popupposition.h',
   'src/popups/popupposition.c',
   'src/bar/bar.c',
   'src/bar/bar.h',
+  'src/media/media.c',
+  'src/media/media.h',
   'src/networking/networking.h',
   'src/networking/networking.c',
 ]
 
-inc_dirs = include_directories('src', 'src/widgets', 'src/popups', 'src/bar', 'src/networking')
+inc_dirs = include_directories('src', 'src/widgets', 'src/popups', 'src/bar', 'src/media', 'src/networking')
 
 install_data('style.css', install_dir: join_paths(get_option('datadir'), 'gtkbar'))
 

@@ -1,4 +1,7 @@
 #include "bar.h"
+#include "glib.h"
+#include "gtk/gtk.h"
+#include "media.h"
 
 void on_callendar_button_clicked(GtkGestureClick *gesture, int n_press,
 								 double x, double y, gpointer user_data) {
@@ -14,28 +17,31 @@ void on_ctrl_box_clicked(GtkGestureClick *gesture, int n_press, double x,
 
 int bar(int *argc, char *(*argv[]), GtkWidget *window, GdkMonitor *monitor) {
 
-	GtkCssProvider *provider = gtk_css_provider_new();
-	typedef struct {
-		char *css_path;
-	} sargs;
-	sargs args;
-	args.css_path = strdup("/usr/share/gtkbar/style.css");
-	if (*argc > 1) {
-		for (int i = 0; i < *argc; i++) {
-			if (strcmp((*argv)[i], "--css-path") == 0) {
-				if ((*argv)[i + 1]) {
-					args.css_path = (*argv)[i + 1];
-					g_message("CSS Path: %s", args.css_path);
-					i++;
+	{
+
+		GtkCssProvider *provider = gtk_css_provider_new();
+		typedef struct {
+			char *css_path;
+		} AppArgs;
+		AppArgs args;
+		args.css_path = strdup("/usr/share/gtkbar/style.css");
+		if (*argc > 1) {
+			for (int i = 0; i < *argc; i++) {
+				if (strcmp((*argv)[i], "--css-path") == 0) {
+					if ((*argv)[i + 1]) {
+						args.css_path = (*argv)[i + 1];
+						g_message("CSS Path: %s", args.css_path);
+						i++;
+					}
 				}
 			}
 		}
-	}
-	gtk_style_context_add_provider_for_display(
-		gdk_display_get_default(), GTK_STYLE_PROVIDER(provider),
-		GTK_STYLE_PROVIDER_PRIORITY_USER);
+		gtk_style_context_add_provider_for_display(
+			gdk_display_get_default(), GTK_STYLE_PROVIDER(provider),
+			GTK_STYLE_PROVIDER_PRIORITY_USER);
 
-	gtk_css_provider_load_from_path(provider, args.css_path);
+		gtk_css_provider_load_from_path(provider, args.css_path);
+	}
 
 	gtk_layer_set_keyboard_mode(GTK_WINDOW(window),
 								GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
@@ -149,6 +155,12 @@ int bar(int *argc, char *(*argv[]), GtkWidget *window, GdkMonitor *monitor) {
 	gtk_box_append(GTK_BOX(box), workspace_box);
 	gtk_box_append(GTK_BOX(box), center_box);
 	gtk_box_append(GTK_BOX(box), right_box);
+
+	GtkWidget *mediaLabel = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+	get_media_label(mediaLabel);
+	gtk_widget_add_css_class(mediaLabel, "widget");
+	gtk_widget_set_name(mediaLabel, "media-label-widget");
+	gtk_box_append(GTK_BOX(center_box), mediaLabel);
 
 	gtk_window_set_child(GTK_WINDOW(window), box);
 
