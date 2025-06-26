@@ -259,10 +259,8 @@ void cover_load_thread(GTask *task, gpointer source_object, gpointer task_data,
     const char *uri = task_data;
     GError *err = NULL;
 
-    // 1) Create a GFile from the URI (works with file://, http://, etc.)
     GFile *file = g_file_new_for_uri(uri);
 
-    // 2) Open a read stream (may block, but we're on a worker thread)
     GFileInputStream *stream =
         G_FILE_INPUT_STREAM(g_file_read(file, cancellable, &err));
     if (!stream) {
@@ -271,7 +269,6 @@ void cover_load_thread(GTask *task, gpointer source_object, gpointer task_data,
     }
     g_object_unref(file);
 
-    // 3) Load & scale the image to 256×256, preserving aspect ratio
     GdkPixbuf *pixbuf = gdk_pixbuf_new_from_stream_at_scale(
         G_INPUT_STREAM(stream), 256, 256, // target width & height
         TRUE,                             // preserve-aspect
@@ -283,11 +280,9 @@ void cover_load_thread(GTask *task, gpointer source_object, gpointer task_data,
         return;
     }
 
-    // 4) Turn the scaled pixbuf into a texture
     GdkTexture *tex = gdk_texture_new_for_pixbuf(pixbuf);
     g_object_unref(pixbuf);
 
-    // 5) Return the texture (transfer ownership to the callback)
     g_task_return_pointer(task, tex, g_object_unref);
 }
 
@@ -522,14 +517,13 @@ void on_mpris_properties_changed_label(GDBusConnection *conn,
  */
 
 void subscribe_new_mpris_players(gpointer user_data) {
-    // subscribe to org.freedesktop.DBus NameOwnerChanged
     name_owner_sub_id = g_dbus_connection_signal_subscribe(
-        session_bus,             // your GDBusConnection*
-        "org.freedesktop.DBus",  // sender
-        "org.freedesktop.DBus",  // interface
-        "NameOwnerChanged",      // member
-        "/org/freedesktop/DBus", // object path
-        NULL,                    // arg0 (watch all names)
+        session_bus,
+        "org.freedesktop.DBus",
+        "org.freedesktop.DBus",
+        "NameOwnerChanged",
+        "/org/freedesktop/DBus",
+        NULL,
         G_DBUS_SIGNAL_FLAGS_NONE, on_name_owner_changed, user_data, NULL);
 }
 
