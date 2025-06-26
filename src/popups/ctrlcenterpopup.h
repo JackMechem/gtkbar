@@ -20,20 +20,20 @@ void ctrl_center_popup_toggle(GtkWidget *anchor);
 GtkWidget *new_icon_button(char *icon_name);
 
 gboolean on_overlay_hover_enter(GtkEventController *controller,
-								gpointer user_data);
+                                gpointer user_data);
 
 gboolean on_overlay_hover_leave(GtkEventController *controller,
-								gpointer user_data);
+                                gpointer user_data);
 
 gboolean wifi_ref_wrap(gpointer user_data);
 
 gboolean wifi_ref_wrap(gpointer user_data);
 
 void on_click_begin(GtkGestureClick *gesture, double start_x, double start_y,
-					gpointer user_data);
+                    gpointer user_data);
 
 void on_click_end(GtkGestureClick *gesture, double offset_x, double offset_y,
-				  gpointer user_data);
+                  gpointer user_data);
 
 gboolean volume_ref_wrap(gpointer user_data);
 
@@ -48,9 +48,9 @@ void show_power_options(GtkEventController *controller, gpointer user_data);
 void hide_power_options(GtkEventController *controller, gpointer user_data);
 
 void on_wifi_clicked(GtkGestureClick *gesture, int n_press, double x, double y,
-					 gpointer user_data);
+                     gpointer user_data);
 
 void on_back_clicked(GtkGestureClick *gesture, int n_press, double x, double y,
-					 gpointer user_data);
+                     gpointer user_data);
 
 #endif
