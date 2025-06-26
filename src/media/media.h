@@ -6,14 +6,14 @@
 
 /// Holds the “now playing” metadata.
 typedef struct {
-	/// D-Bus service name, e.g. "org.mpris.MediaPlayer2.spotify"
-	char *service;
-	char *title;
-	char *artist;
-	char *album;
-	/// URI to album art (e.g. "file://…" or "https://…")
-	char *art_url;
-	gint64 length;
+    /// D-Bus service name, e.g. "org.mpris.MediaPlayer2.spotify"
+    char *service;
+    char *title;
+    char *artist;
+    char *album;
+    /// URI to album art (e.g. "file://…" or "https://…")
+    char *art_url;
+    gint64 length;
 } TrackInfo;
 
 /// Query the first available MPRIS player and pull its Metadata.

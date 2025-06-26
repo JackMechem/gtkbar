@@ -23,18 +23,16 @@ int main(int argc, char *argv[]) {
 
 		GdkRectangle geometry;
 		gdk_monitor_get_geometry(monitor, &geometry);
-		g_object_unref(monitor); // free GObject ref
+		g_object_unref(monitor);
 		GtkWidget *window = gtk_window_new();
 		char buffer[32];
 		snprintf(buffer, sizeof(buffer), "Gtkbar%d", i);
 		gtk_window_set_title(GTK_WINDOW(window), buffer);
-		// Set full width, auto height
 		gtk_window_set_default_size(GTK_WINDOW(window), geometry.width, -1);
 		gtk_window_set_decorated(GTK_WINDOW(window), FALSE);
 
 		gtk_window_set_display(GTK_WINDOW(window), display);
 
-		// Explicitly move it to that monitor's position
 		gtk_layer_init_for_window(GTK_WINDOW(window));
 		gtk_layer_set_monitor(GTK_WINDOW(window), monitor);
 		gtk_layer_auto_exclusive_zone_enable(GTK_WINDOW(window));
@@ -48,7 +46,7 @@ int main(int argc, char *argv[]) {
 		gtk_layer_set_margin(GTK_WINDOW(window), GTK_LAYER_SHELL_EDGE_TOP,
 							 geometry.y);
 		bar(&argc, &argv, window, monitor);
-		gtk_window_present(GTK_WINDOW(window)); // Show the window properly
+		gtk_window_present(GTK_WINDOW(window));
 	}
 	GMainLoop *loop = g_main_loop_new(NULL, FALSE);
 	g_main_loop_run(loop);
