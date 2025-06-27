@@ -36,6 +36,7 @@ static GtkProgressBar *song_progress = NULL;
 static GtkLabel *track_current_position_label = NULL;
 static GtkLabel *track_duration_position_label = NULL;
 static GtkPicture *cover_pic = NULL;
+static GCancellable *cover_cancellable = NULL;
 
 // Track length
 static gint64 track_length = 0;

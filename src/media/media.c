@@ -1,4 +1,7 @@
 #include "media.h"
+#include "gio/gio.h"
+#include "glib-object.h"
+#include "glib.h"
 
 /*
  * Build, Update, And Clean UIs
@@ -57,10 +60,10 @@ GtkWidget *get_media_box(void) {
         subscribe_to_position_changes(NULL);
         GtkWidget *ctrls = get_media_controls();
         gtk_box_append(GTK_BOX(mediaBox), ctrls);
-        now_playing_free(t);
     } else {
         g_print("No MPRIS player active\n");
     }
+    now_playing_free(t);
     return mediaBox;
 }
 
@@ -80,6 +83,7 @@ void update_media_box(void) {
     TrackInfo *t = now_playing_query();
     if (!t) {
         g_print("No MPRIS player active\n");
+        now_playing_free(t);
         return;
     }
     cover_pic = GTK_PICTURE(gtk_picture_new());
@@ -227,8 +231,6 @@ GtkWidget *get_media_controls(void) {
  * UI Callbacks
  */
 
-/* Media control button callbacks */
-
 void on_prev_clicked(GtkButton *_btn, gpointer _) {
     send_mpris_command("Previous");
 }
@@ -249,8 +251,6 @@ void clear_cover_pic(void) {
     GdkPaintable *old = gtk_picture_get_paintable(cover_pic);
     if (old) {
         gtk_picture_set_paintable(cover_pic, NULL);
-        g_object_ref_sink(old);
-        g_object_unref(old);
     }
 }
 
@@ -270,8 +270,8 @@ void cover_load_thread(GTask *task, gpointer source_object, gpointer task_data,
     g_object_unref(file);
 
     GdkPixbuf *pixbuf = gdk_pixbuf_new_from_stream_at_scale(
-        G_INPUT_STREAM(stream), 256, 256, // target width & height
-        TRUE,                             // preserve-aspect
+        G_INPUT_STREAM(stream), 256, 256,
+        TRUE,
         cancellable, &err);
     g_object_unref(stream);
 
@@ -305,7 +305,12 @@ void on_cover_loaded(GObject *source_object, GAsyncResult *res,
 }
 
 void load_cover_async(const char *uri) {
-    GTask *t = g_task_new(NULL, NULL, on_cover_loaded, cover_pic);
+    if (cover_cancellable) {
+        g_cancellable_cancel(cover_cancellable);
+        g_clear_object(&cover_cancellable);
+    }
+    cover_cancellable = g_cancellable_new();
+    GTask *t = g_task_new(NULL, cover_cancellable, on_cover_loaded, cover_pic);
     g_task_set_task_data(t, g_strdup(uri), g_free);
     g_task_run_in_thread(t, cover_load_thread);
 }
@@ -429,15 +434,26 @@ void subscribe_mpris_changes_label(gpointer user_data) {
 }
 
 void unsubscribe_mpris_changes(void) {
+    if (cover_cancellable) {
+        g_cancellable_cancel(cover_cancellable);
+        g_clear_object(&cover_cancellable);
+    }
     // Stop D-Bus signals
-    if (mpris_props_id) {
+    if (mpris_props_id != 0) {
         g_dbus_connection_signal_unsubscribe(session_bus, mpris_props_id);
         mpris_props_id = 0;
     }
     // Stop the position timer
-    if (position_timer_id) {
+    if (position_timer_id != 0) {
         g_source_remove(position_timer_id);
         position_timer_id = 0;
+    }
+    if (name_owner_sub_id != 0) {
+        g_dbus_connection_signal_unsubscribe(session_bus, name_owner_sub_id);
+        name_owner_sub_id = 0;
+    }
+    if (!cover_pic) {
+        g_warning("coverpic null");
     }
     // Clear cover art
     clear_cover_pic();
@@ -462,7 +478,6 @@ void unsubscribe_mpris_changes(void) {
     }
     mallopt(M_TRIM_THRESHOLD, 0);
     mallopt(M_MMAP_THRESHOLD, 0);
-    malloc_info(0, stdout);
 }
 
 void on_mpris_properties_changed(GDBusConnection *conn, const gchar *sender,
@@ -518,12 +533,8 @@ void on_mpris_properties_changed_label(GDBusConnection *conn,
 
 void subscribe_new_mpris_players(gpointer user_data) {
     name_owner_sub_id = g_dbus_connection_signal_subscribe(
-        session_bus,
-        "org.freedesktop.DBus",
-        "org.freedesktop.DBus",
-        "NameOwnerChanged",
-        "/org/freedesktop/DBus",
-        NULL,
+        session_bus, "org.freedesktop.DBus", "org.freedesktop.DBus",
+        "NameOwnerChanged", "/org/freedesktop/DBus", NULL,
         G_DBUS_SIGNAL_FLAGS_NONE, on_name_owner_changed, user_data, NULL);
 }
 

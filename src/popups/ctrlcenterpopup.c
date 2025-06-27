@@ -1,25 +1,12 @@
 #include "ctrlcenterpopup.h"
-#include "app.h"
-#include "bt.h"
-#include "gio/gio.h"
-#include "glib-object.h"
-#include "glib.h"
-#include "gtk/gtk.h"
-#include "gtk/gtkshortcut.h"
-#include "gtk4-layer-shell.h"
 #include "media.h"
-#include "mixer.h"
+#include "app.h"
 #include "networking.h"
-#include <gdk/gdk.h>
-#include <pthread.h>
-#include <stdlib.h>
-#include <unistd.h>
-GtkWindow *popup_window = NULL;
-static const int POPUP_WIDTH = 350;
-static const int POPUP_HEIGHT = 100;
-static guint volume_timeout_id = 0;
-gpointer devInst;
+#include "volume.h"
 
+/*
+ * UI Helpers
+*/
 GtkWidget *new_icon_button(char *icon_name) {
 	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_widget_add_css_class(box, "icon-button");
@@ -29,41 +16,10 @@ GtkWidget *new_icon_button(char *icon_name) {
 	return box;
 }
 
-gboolean on_overlay_hover_enter(GtkEventController *controller,
-								gpointer user_data) {
-	gtk_widget_add_css_class(GTK_WIDGET(user_data), "visible");
-	GdkSurface *surface =
-		gtk_native_get_surface(gtk_widget_get_native(GTK_WIDGET(user_data)));
-	GdkCursor *cursor = gdk_cursor_new_from_name("pointer", NULL);
-	gdk_surface_set_cursor(surface, cursor);
-	return FALSE;
-}
-
-gboolean on_overlay_hover_leave(GtkEventController *controller,
-								gpointer user_data) {
-	gtk_widget_remove_css_class(GTK_WIDGET(user_data), "visible");
-	GdkSurface *surface =
-		gtk_native_get_surface(gtk_widget_get_native(GTK_WIDGET(user_data)));
-	GdkCursor *cursor = gdk_cursor_new_from_name("default", NULL);
-	gdk_surface_set_cursor(surface, cursor);
-	return FALSE;
-}
-
-gboolean wifi_ref_wrap(gpointer user_data) {
-	if (GTK_IS_WIDGET(user_data)) {
-		GtkWidget *label = user_data;
-		gtk_label_set_text(GTK_LABEL(label), get_wifi_name());
-		return TRUE;
-	} else {
-		return FALSE;
-	}
-}
-
 GtkWidget *new_bottom_button(char *icon_name, char *text, GtkWidget *label) {
 	GtkWidget *overlay = gtk_overlay_new();
 	gtk_widget_add_css_class(overlay, "overlay");
 
-	// Your existing box
 	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
 	gtk_widget_add_css_class(box, "button");
 
@@ -80,36 +36,45 @@ GtkWidget *new_bottom_button(char *icon_name, char *text, GtkWidget *label) {
 
 	gtk_box_append(GTK_BOX(box), logo);
 	gtk_box_append(GTK_BOX(box), label);
-
-	// Add box as the main child of the overlay
 	gtk_overlay_set_child(GTK_OVERLAY(overlay), box);
 
-	// Overlay a button on top (top-right)
-	GtkWidget *overlay_button =
-		gtk_button_new_from_icon_name("go-next-symbolic");
+	GtkWidget *overlay_button = gtk_button_new_from_icon_name("go-next-symbolic");
 	gtk_widget_set_halign(overlay_button, GTK_ALIGN_END);
 	gtk_widget_set_valign(overlay_button, GTK_ALIGN_CENTER);
 	gtk_overlay_add_overlay(GTK_OVERLAY(overlay), overlay_button);
 
-	// Enable hover tracking
-	gtk_widget_set_cursor_from_name(overlay, NULL); // optional dummy input
+	gtk_widget_set_cursor_from_name(overlay, NULL);
 
-	// Show on hover
 	GtkEventController *motion = gtk_event_controller_motion_new();
-	g_signal_connect(motion, "enter", G_CALLBACK(on_overlay_hover_enter),
-					 overlay_button);
-	g_signal_connect(motion, "leave", G_CALLBACK(on_overlay_hover_leave),
-					 overlay_button);
+	g_signal_connect(motion, "enter", G_CALLBACK(on_overlay_hover_enter), overlay_button);
+	g_signal_connect(motion, "leave", G_CALLBACK(on_overlay_hover_leave), overlay_button);
 	gtk_widget_add_controller(overlay, motion);
 
 	return overlay;
 }
 
-int prev_volume = -1;
+/*
+ * Hover Events
+*/
+gboolean on_overlay_hover_enter(GtkEventController *controller, gpointer user_data) {
+	gtk_widget_add_css_class(GTK_WIDGET(user_data), "visible");
+	GdkSurface *surface = gtk_native_get_surface(gtk_widget_get_native(GTK_WIDGET(user_data)));
+	GdkCursor *cursor = gdk_cursor_new_from_name("pointer", NULL);
+	gdk_surface_set_cursor(surface, cursor);
+	return FALSE;
+}
 
-static gboolean volumeChanging = FALSE;
-static gboolean scaleChanging = FALSE;
+gboolean on_overlay_hover_leave(GtkEventController *controller, gpointer user_data) {
+	gtk_widget_remove_css_class(GTK_WIDGET(user_data), "visible");
+	GdkSurface *surface = gtk_native_get_surface(gtk_widget_get_native(GTK_WIDGET(user_data)));
+	GdkCursor *cursor = gdk_cursor_new_from_name("default", NULL);
+	gdk_surface_set_cursor(surface, cursor);
+	return FALSE;
+}
 
+/*
+ * Volume Controls
+*/
 gboolean volume_ref_wrap(gpointer user_data) {
 	if (GTK_IS_WIDGET(user_data)) {
 		if (prev_volume != get_volume_percentage()) {
@@ -127,11 +92,13 @@ gboolean volume_ref_wrap(gpointer user_data) {
 		return FALSE;
 	}
 }
+
 void on_volume_scale_changed(GtkRange *range, gpointer user_data) {
 	scaleChanging = TRUE;
 	double value = gtk_range_get_value(range);
 	if (volumeChanging == TRUE)
 		set_volume((int)value);
+
 	GtkWidget *label = user_data;
 	int volume = get_volume_percentage();
 	char text[32];
@@ -144,31 +111,22 @@ void on_volume_scale_changed(GtkRange *range, gpointer user_data) {
 	scaleChanging = FALSE;
 }
 
-void show_power_options(GtkEventController *controller, gpointer user_data) {
-	GtkWidget *powerOptions = GTK_WIDGET(user_data);
-
-	if (!GTK_IS_WIDGET(powerOptions)) {
-		return;
+/*
+ * Wi-Fi / Networking
+*/
+gboolean wifi_ref_wrap(gpointer user_data) {
+	if (GTK_IS_WIDGET(user_data)) {
+		GtkWidget *label = user_data;
+		gtk_label_set_text(GTK_LABEL(label), get_wifi_name());
+		return TRUE;
+	} else {
+		return FALSE;
 	}
-	gtk_widget_set_visible(powerOptions, TRUE);
 }
 
-void hide_power_options(GtkEventController *controller, gpointer user_data) {
-	GtkWidget *powerOptions = GTK_WIDGET(user_data);
-
-	if (!GTK_IS_WIDGET(powerOptions)) {
-		return;
-	}
-	gtk_widget_set_visible(powerOptions, FALSE);
-}
-
-guint stacktransition_id = 0;
-
-void on_stack_transition(GObject *stack, GParamSpec *pspec,
-						 gpointer user_data) {
+void on_stack_transition(GObject *stack, GParamSpec *pspec, gpointer user_data) {
 	gboolean running = gtk_stack_get_transition_running(GTK_STACK(stack));
 	if (!running) {
-
 		if (GTK_IS_BOX(user_data)) {
 			GtkWidget *box = user_data;
 			refresh_wifi_list(box);
@@ -178,52 +136,16 @@ void on_stack_transition(GObject *stack, GParamSpec *pspec,
 	}
 }
 
-void on_wifi_clicked(GtkGestureClick *gesture, int n_press, double x, double y,
-					 gpointer user_data) {
+void on_wifi_clicked(GtkGestureClick *gesture, int n_press, double x, double y, gpointer user_data) {
 	WifiCLickedArgs *args = user_data;
 	GtkStack *stack = GTK_STACK(args->stack);
-	stacktransition_id =
-		g_signal_connect(stack, "notify::transition-running",
-						 G_CALLBACK(on_stack_transition), args->box);
+	stacktransition_id = g_signal_connect(stack, "notify::transition-running",
+										  G_CALLBACK(on_stack_transition), args->box);
 	gtk_stack_set_visible_child_name(stack, "wifi");
 	gtk_widget_set_size_request(args->wifiMenu, -1, 600);
 }
 
-void on_sleep_clicked(GtkGestureClick *gesture, int n_press, double x, double y,
-					  gpointer user_data) {
-	if (system("systemctl suspend") != 0)
-		perror("suspend failed");
-}
-void on_logout_clicked(GtkGestureClick *gesture, int n_press, double x,
-					   double y, gpointer user_data) {
-	if (system("loginctl terminate-session $XDG_SESSION_ID") != 0)
-		perror("logout failed");
-}
-void on_restart_clicked(GtkGestureClick *gesture, int n_press, double x,
-						double y, gpointer user_data) {
-	if (system("systemctl reboot") != 0)
-		perror("reboot failed");
-}
-void on_power_clicked(GtkGestureClick *gesture, int n_press, double x, double y,
-					  gpointer user_data) {
-	if (system("systemctl poweroff") != 0)
-		perror("shutdown failed");
-}
-
-void on_mixer_clicked(GtkGestureClick *gesture, int n_press, double x, double y,
-					  gpointer user_data) {
-	GtkStack *stack = user_data;
-	gtk_stack_set_visible_child_name(stack, "mixer");
-}
-
-void on_bt_click(GtkGestureClick *gesture, int n_press, double x, double y,
-				 gpointer user_data) {
-	WifiCLickedArgs *args = user_data;
-	gtk_widget_set_size_request(args->wifiMenu, -1, 500);
-	gtk_stack_set_visible_child_name(args->stack, "bt");
-}
-void on_back_clicked(GtkGestureClick *gesture, int n_press, double x, double y,
-					 gpointer user_data) {
+void on_back_clicked(GtkGestureClick *gesture, int n_press, double x, double y, gpointer user_data) {
 	WifiCLickedArgs *args = user_data;
 	GtkStack *stack = GTK_STACK(args->stack);
 	gtk_widget_set_size_request(args->wifiMenu, -1, -1);
@@ -232,6 +154,58 @@ void on_back_clicked(GtkGestureClick *gesture, int n_press, double x, double y,
 	clear_wifi_list(args->box);
 }
 
+/*
+ * Power Options
+*/
+void show_power_options(GtkEventController *controller, gpointer user_data) {
+	GtkWidget *powerOptions = GTK_WIDGET(user_data);
+	if (!GTK_IS_WIDGET(powerOptions)) return;
+	gtk_widget_set_visible(powerOptions, TRUE);
+}
+
+void hide_power_options(GtkEventController *controller, gpointer user_data) {
+	GtkWidget *powerOptions = GTK_WIDGET(user_data);
+	if (!GTK_IS_WIDGET(powerOptions)) return;
+	gtk_widget_set_visible(powerOptions, FALSE);
+}
+
+void on_sleep_clicked(GtkGestureClick *gesture, int n_press, double x, double y, gpointer user_data) {
+	if (system("systemctl suspend") != 0)
+		perror("suspend failed");
+}
+
+void on_logout_clicked(GtkGestureClick *gesture, int n_press, double x, double y, gpointer user_data) {
+	if (system("loginctl terminate-session $XDG_SESSION_ID") != 0)
+		perror("logout failed");
+}
+
+void on_restart_clicked(GtkGestureClick *gesture, int n_press, double x, double y, gpointer user_data) {
+	if (system("systemctl reboot") != 0)
+		perror("reboot failed");
+}
+
+void on_power_clicked(GtkGestureClick *gesture, int n_press, double x, double y, gpointer user_data) {
+	if (system("systemctl poweroff") != 0)
+		perror("shutdown failed");
+}
+
+/*
+ * Gesture Navigation
+*/
+void on_mixer_clicked(GtkGestureClick *gesture, int n_press, double x, double y, gpointer user_data) {
+	GtkStack *stack = user_data;
+	gtk_stack_set_visible_child_name(stack, "mixer");
+}
+
+void on_bt_click(GtkGestureClick *gesture, int n_press, double x, double y, gpointer user_data) {
+	WifiCLickedArgs *args = user_data;
+	gtk_widget_set_size_request(args->wifiMenu, -1, 500);
+	gtk_stack_set_visible_child_name(args->stack, "bt");
+}
+
+/*
+ * Main Popup Launcher
+*/
 void ctrl_center_popup_toggle(GtkWidget *anchor) {
 	if (!GTK_IS_WIDGET(anchor))
 		return;
@@ -254,12 +228,6 @@ void ctrl_center_popup_toggle(GtkWidget *anchor) {
 	gtk_layer_set_keyboard_mode(GTK_WINDOW(popup_window),
 								GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
 
-	//	g_signal_connect(popup_window, "destroy",
-	// G_CALLBACK(g_cancellable_cancel),
-	// add_connection_cancellable); 	g_signal_connect(popup_window,
-	// "destroy",
-	// G_CALLBACK(g_object_unref),
-	//					 add_connection_cancellable);
 	gtk_window_set_decorated(popup_window, FALSE);
 	gtk_window_set_resizable(popup_window, FALSE);
 	gtk_window_set_default_size(popup_window, POPUP_WIDTH, POPUP_HEIGHT);
@@ -292,13 +260,9 @@ void ctrl_center_popup_toggle(GtkWidget *anchor) {
 	// GtkWidget *battery_label = gtk_label_new("🔋 36 %");
 	// gtk_box_append(GTK_BOX(main_box), battery_label);
 
-	// Controls row (camera, lock, settings, power)
 	GtkWidget *top_controls = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
 	gtk_widget_set_halign(top_controls, GTK_ALIGN_END);
 	gtk_box_append(GTK_BOX(main_box), top_controls);
-
-	// GtkWidget *settingsButton =
-	// new_icon_button("applications-system-symbolic");
 
 	GtkWidget *powerBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
 	GtkWidget *powerOptionsBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
@@ -358,13 +322,11 @@ void ctrl_center_popup_toggle(GtkWidget *anchor) {
 					 powerOptionsBox);
 	gtk_widget_add_controller(powerBox, motion);
 
-	// gtk_box_append(GTK_BOX(top_controls), settingsButton);
 	gtk_box_append(GTK_BOX(top_controls), powerBox);
 
 	gtk_widget_set_visible(powerOptionsBox, FALSE);
 
 	int volume = get_volume_percentage();
-	// Volume and brightness sliders
 	GtkWidget *volumeBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
 	gtk_widget_add_css_class(volumeBox, "volume-box");
 	GtkWidget *volumeImage =
@@ -398,16 +360,9 @@ void ctrl_center_popup_toggle(GtkWidget *anchor) {
 	GtkWidget *mediaBox = get_media_box();
 
 	gtk_box_append(GTK_BOX(main_box), mediaBox);
-	// GtkWidget *brightness_scale =
-	//	gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0,
-	// 100, 1);
-	// gtk_scale_set_value_pos(GTK_SCALE(brightness_scale),
-	// GTK_POS_TOP); gtk_box_append(GTK_BOX(main_box),
-	// brightness_scale);
 
 	GtkWidget *rows = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
 	gtk_widget_add_css_class(rows, "bottom-rows");
-	// First button row (Wi-Fi and Bluetooth)
 	GtkWidget *row1 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
 	gtk_box_append(GTK_BOX(rows), row1);
 	gtk_widget_set_hexpand(row1, TRUE);
@@ -426,7 +381,6 @@ void ctrl_center_popup_toggle(GtkWidget *anchor) {
 	gtk_widget_set_hexpand(mixerButton, TRUE);
 	gtk_box_append(GTK_BOX(row1), mixerButton);
 
-	// Second button row (Power Saver and Night Light)
 	GtkWidget *row2 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
 
 	GtkWidget *btlabel = gtk_label_new("");
@@ -516,5 +470,4 @@ void ctrl_center_popup_toggle(GtkWidget *anchor) {
 	gtk_window_present(popup_window);
 	wifi_timeout_id = g_timeout_add(1000, wifi_ref_wrap, wifiLabel);
 	volume_timeout_id = g_timeout_add(100, volume_ref_wrap, volume_scale);
-	//	pthread_create(&evnt_thr, NULL, (void *)netthread, box);
 }
