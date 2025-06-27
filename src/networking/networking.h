@@ -1,7 +1,6 @@
 #ifndef NETWORKING_H
 #define NETWORKING_H
 #include "NetworkManager.h"
-#include "app.h"
 #include "gio/gio.h"
 #include "glib.h"
 #include "gtk/gtk.h"

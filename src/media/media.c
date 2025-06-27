@@ -1,11 +1,10 @@
 #include "media.h"
 #include "gio/gio.h"
 #include "glib-object.h"
-#include "glib.h"
 
-/*
- * Build, Update, And Clean UIs
- */
+// **
+// ** Build, Update, And Clean UIs
+// **
 
 // Build UI for media player
 GtkWidget *get_media_box(void) {
@@ -227,9 +226,9 @@ GtkWidget *get_media_controls(void) {
     return hbox;
 }
 
-/*
- * UI Callbacks
- */
+// **
+// ** UI Callbacks
+// **
 
 void on_prev_clicked(GtkButton *_btn, gpointer _) {
     send_mpris_command("Previous");
@@ -241,10 +240,13 @@ void on_next_clicked(GtkButton *_btn, gpointer _) {
     send_mpris_command("Next");
 }
 
-/*
- * Cover Photo
- */
+// **
+// ** Cover Photo
+// **
 
+// TODO: Possible memory leaks. Cover photo may not be fully deleted after used.
+
+// Clear cover photo.
 void clear_cover_pic(void) {
     if (!cover_pic)
         return;
@@ -254,6 +256,7 @@ void clear_cover_pic(void) {
     }
 }
 
+// Cover load thread function, returns texture
 void cover_load_thread(GTask *task, gpointer source_object, gpointer task_data,
                        GCancellable *cancellable) {
     const char *uri = task_data;
@@ -270,9 +273,7 @@ void cover_load_thread(GTask *task, gpointer source_object, gpointer task_data,
     g_object_unref(file);
 
     GdkPixbuf *pixbuf = gdk_pixbuf_new_from_stream_at_scale(
-        G_INPUT_STREAM(stream), 256, 256,
-        TRUE,
-        cancellable, &err);
+        G_INPUT_STREAM(stream), 256, 256, TRUE, cancellable, &err);
     g_object_unref(stream);
 
     if (!pixbuf) {
@@ -286,6 +287,7 @@ void cover_load_thread(GTask *task, gpointer source_object, gpointer task_data,
     g_task_return_pointer(task, tex, g_object_unref);
 }
 
+// Runs after the cover image is loaded
 void on_cover_loaded(GObject *source_object, GAsyncResult *res,
                      gpointer user_data) {
     clear_cover_pic();
@@ -304,6 +306,7 @@ void on_cover_loaded(GObject *source_object, GAsyncResult *res,
     g_object_unref(task);
 }
 
+// Create GTask and run it in a thread to render the cover photo
 void load_cover_async(const char *uri) {
     if (cover_cancellable) {
         g_cancellable_cancel(cover_cancellable);
@@ -315,10 +318,12 @@ void load_cover_async(const char *uri) {
     g_task_run_in_thread(t, cover_load_thread);
 }
 
-/*
- * Query now playing track information
- */
+// **
+// ** Query now playing track information
+// **
 
+// Get all Names from DBus and find the first one prefixed with
+// "org.mpris.MediaPlayer2." Gets metadata from player and returns TrackInfo.
 TrackInfo *now_playing_query(void) {
     GError *err = NULL;
     if (!session_bus) {
@@ -397,6 +402,7 @@ TrackInfo *now_playing_query(void) {
     return info;
 }
 
+// Function to free TrackInfo, should be run after now_playing_query.
 void now_playing_free(TrackInfo *info) {
     if (!info)
         return;
@@ -408,10 +414,15 @@ void now_playing_free(TrackInfo *info) {
     g_free(info);
 }
 
-/*
- * Subscribe to MPRIS Changes
- */
+// **
+// ** Subscribe to MPRIS Changes
+// **
 
+// TODO: Find a better way of subscribing to mpris changes for multiple widgets
+// without making more functions in this file.
+
+// Runs on_mpris_properties_changed every time specified player's properties
+// change. For control center widget
 void subscribe_mpris_changes(void) {
     if (!session_bus || !current_player || mpris_props_id)
         return;
@@ -422,6 +433,8 @@ void subscribe_mpris_changes(void) {
         on_mpris_properties_changed, NULL, NULL);
 }
 
+// Runs on_mpris_properties_changed every time specified player's properties
+// change. For bar widget
 void subscribe_mpris_changes_label(gpointer user_data) {
     if (!session_bus || !current_player)
         return;
@@ -433,6 +446,8 @@ void subscribe_mpris_changes_label(gpointer user_data) {
         on_mpris_properties_changed_label, user_data, NULL);
 }
 
+// Unsubscribe from mpris changes and cancel all async tasks.
+// TODO: Malloc trim may not be good to run here...
 void unsubscribe_mpris_changes(void) {
     if (cover_cancellable) {
         g_cancellable_cancel(cover_cancellable);
@@ -480,6 +495,8 @@ void unsubscribe_mpris_changes(void) {
     mallopt(M_MMAP_THRESHOLD, 0);
 }
 
+// Callback for subscribe_mpris_changes.
+// Updates media box.
 void on_mpris_properties_changed(GDBusConnection *conn, const gchar *sender,
                                  const gchar *path, const gchar *iface,
                                  const gchar *signal, GVariant *params,
@@ -509,6 +526,8 @@ void on_mpris_properties_changed(GDBusConnection *conn, const gchar *sender,
     g_variant_unref(invalid);
 }
 
+// Callback for subscribe_mpris_changes.
+// Updates label.
 void on_mpris_properties_changed_label(GDBusConnection *conn,
                                        const gchar *sender, const gchar *path,
                                        const gchar *iface, const gchar *signal,
@@ -527,10 +546,12 @@ void on_mpris_properties_changed_label(GDBusConnection *conn,
     g_variant_unref(invalid);
 }
 
-/*
- * Subscribe to New MPRIS Players
- */
+// **
+// ** Subscribe to New MPRIS Players
+// **
 
+// Runs on_name_owner_changed whenever there is an mpris player created or
+// removed.
 void subscribe_new_mpris_players(gpointer user_data) {
     name_owner_sub_id = g_dbus_connection_signal_subscribe(
         session_bus, "org.freedesktop.DBus", "org.freedesktop.DBus",
@@ -538,6 +559,8 @@ void subscribe_new_mpris_players(gpointer user_data) {
         G_DBUS_SIGNAL_FLAGS_NONE, on_name_owner_changed, user_data, NULL);
 }
 
+// Callback for subscribe_new_mpris_players.
+// Reconstructs media label
 void on_name_owner_changed(GDBusConnection *conn, const gchar *sender_name,
                            const gchar *object_path,
                            const gchar *interface_name,
@@ -561,10 +584,11 @@ void on_name_owner_changed(GDBusConnection *conn, const gchar *sender_name,
     }
 }
 
-/*
- * Send Command to MPRIS
- */
+// **
+// ** Send Command to MPRIS
+// **
 
+// Sends command to mpris
 void send_mpris_command(const char *method_name) {
     if (!session_bus || !current_player)
         return;
@@ -579,10 +603,11 @@ void send_mpris_command(const char *method_name) {
     }
 }
 
-/*
- * Subscribe to MPRIS Changes and Update Media Controls
- */
+// **
+// ** Subscribe to MPRIS Changes and Update Media Controls
+// **
 
+// Checks playback status and changes play/pause logo.
 void subscribe_to_playpause_changes(void) {
     if (!session_bus || !current_player || !play_button)
         return;
@@ -611,6 +636,7 @@ void subscribe_to_playpause_changes(void) {
                          gtk_image_new_from_icon_name(icon_name));
 }
 
+// Subscribes to song progress changes and updates progress bar.
 gboolean subscribe_to_position_changes(gpointer _unused) {
     if (!session_bus || !current_player || track_length <= 0)
         return G_SOURCE_CONTINUE;

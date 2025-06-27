@@ -5,9 +5,9 @@
 #include <malloc.h>
 #include <gtk/gtk.h>
 
-/*
- * Globals
- */
+// **
+// ** Globals
+// **
 
 // Struct for storing track information
 typedef struct {
@@ -41,9 +41,9 @@ static GCancellable *cover_cancellable = NULL;
 // Track length
 static gint64 track_length = 0;
 
-/*
- * Definitions
- */
+// **
+// ** Definitions
+// **
 
 // Build, update, and clean UIs
 GtkWidget *get_media_box(void);

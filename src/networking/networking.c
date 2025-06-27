@@ -1,4 +1,5 @@
 #include "networking.h"
+#include "app.h"
 #include "gio/gio.h"
 #include "glib.h"
 #include "gtk/gtk.h"

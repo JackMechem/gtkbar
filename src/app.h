@@ -1,15 +1,9 @@
 #ifndef APP_H
 #define APP_H
 
-#include "gdk/gdk.h"
-#include "glib.h"
 #include <cjson/cJSON.h>
 #include <gtk/gtk.h>
 #include <gtk4-layer-shell/gtk4-layer-shell.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
 
 typedef struct {
 	char *bar;
