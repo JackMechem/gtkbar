@@ -19,6 +19,11 @@ typedef struct {
     gint64 length;
 } TrackInfo;
 
+typedef struct {
+    GDBusConnection *ses_bus;
+    char *cur_player;
+} PlayerInfo;
+
 // Async and timeout ids
 static guint name_owner_sub_id = 0;
 static guint position_timer_id = 0;
@@ -68,6 +73,7 @@ void load_cover_async(const char *uri);
 
 // Query now playing track information
 TrackInfo *now_playing_query(void);
+PlayerInfo *get_player_info();
 void now_playing_free(TrackInfo *info);
 
 // Subscribe to mpris changes

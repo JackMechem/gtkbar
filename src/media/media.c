@@ -1,6 +1,8 @@
 #include "media.h"
 #include "gio/gio.h"
 #include "glib-object.h"
+#include <stdlib.h>
+#include <string.h>
 
 // **
 // ** Build, Update, And Clean UIs
@@ -142,7 +144,7 @@ GtkWidget *get_media_label(gpointer user_data) {
     GtkWidget *icon = gtk_image_new_from_icon_name("audio-x-generic-symbolic");
     TrackInfo *t = now_playing_query();
     if (name_owner_sub_id != 0) {
-        g_message("Unscubscribed to name_owner_sub_id");
+        // g_message("Unscubscribed to name_owner_sub_id");
     }
     if (t) {
         char buffer[128];
@@ -180,7 +182,7 @@ void update_media_label(gpointer user_data) {
         gtk_label_set_text(GTK_LABEL(mediaLabelLabel), buffer);
         gtk_box_append(GTK_BOX(mediaLabel), icon);
         gtk_box_append(GTK_BOX(mediaLabel), mediaLabelLabel);
-        g_message("updating %s", t->title);
+        //g_message("updating %s", t->title);
     } else {
         g_print("No MPRIS player active\n");
     }
@@ -402,6 +404,16 @@ TrackInfo *now_playing_query(void) {
     return info;
 }
 
+PlayerInfo *get_player_info() {
+    PlayerInfo *pi = malloc(sizeof(PlayerInfo));
+
+    if (current_player) {
+        pi->cur_player = strdup(current_player);
+    }
+    pi->ses_bus = session_bus;
+    return pi;
+}
+
 // Function to free TrackInfo, should be run after now_playing_query.
 void now_playing_free(TrackInfo *info) {
     if (!info)
@@ -438,7 +450,6 @@ void subscribe_mpris_changes(void) {
 void subscribe_mpris_changes_label(gpointer user_data) {
     if (!session_bus || !current_player)
         return;
-    g_message("subscribe mpris changes");
     label_mpris_props_id = g_dbus_connection_signal_subscribe(
         session_bus, current_player, "org.freedesktop.DBus.Properties",
         "PropertiesChanged", "/org/mpris/MediaPlayer2",

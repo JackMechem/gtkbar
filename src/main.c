@@ -4,6 +4,7 @@
 #include "glib.h"
 #include "gtk/gtk.h"
 #include "gtk/gtkcssprovider.h"
+#include "mediaPopup.h"
 #include "volumepopup.h"
 #include <stdlib.h>
 #include <string.h>
@@ -48,6 +49,7 @@ int main(int argc, char *argv[]) {
 		bar(&argc, &argv, window, monitor);
 		gtk_window_present(GTK_WINDOW(window));
 	}
+	listen_media_changes();
 	GMainLoop *loop = g_main_loop_new(NULL, FALSE);
 	g_main_loop_run(loop);
 }

@@ -2,6 +2,7 @@
 #include "calendarpopup.h"
 #include "ctrlcenterpopup.h"
 #include "media.h"
+#include "mediaPopup.h"
 #include "volumepopup.h"
 
 // **
@@ -176,6 +177,7 @@ int bar(int *argc, char *(*argv[]), GtkWidget *window, GdkMonitor *monitor) {
     pthread_t event_thread;
     pthread_create(&event_thread, NULL, (void *)listen_for_workspace_events,
                    workspace_state);
+
 
     g_timeout_add(1000, time_refresh_wrapper, time_label);
     g_timeout_add(100, volume_refresh_wrapper, volumeLabel);

@@ -29,6 +29,8 @@ src = [
     'src/popups/mixer.c',
     'src/popups/bt.h',
     'src/popups/bt.c',
+    'src/popups/mediaPopup.c',
+    'src/popups/mediaPopup.h',
     'src/popups/popupposition.h',
     'src/popups/popupposition.c',
     'src/bar/bar.c',
