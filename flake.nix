@@ -20,6 +20,7 @@
             pkgs.pkg-config
             pkgs.meson
             pkgs.ninja
+            pkgs.makeWrapper
           ];
 
           buildInputs = [
@@ -29,6 +30,10 @@
             pkgs.networkmanager.dev
             pkgs.libpulseaudio
           ];
+          postInstall = ''
+              wrapProgram "$out/bin/gtkbar" \
+                --prefix XDG_DATA_DIRS : "$out/share"
+        '';
         };
       in {
         packages.default = gtkbar;
@@ -38,6 +43,7 @@
             pkgs.pkg-config
             pkgs.meson
             pkgs.ninja
+            pkgs.makeWrapper
           ];
           buildInputs = [
             pkgs.gtk4

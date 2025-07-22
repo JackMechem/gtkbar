@@ -25,6 +25,18 @@ void on_ctrl_box_clicked(GtkGestureClick *gesture, int n_press, double x,
 // ** Main Bar Function
 // **
 
+static char *find_style_css_path(void) {
+    const gchar * const *dirs = g_get_system_data_dirs();
+    for (int i = 0; dirs[i] != NULL; i++) {
+        char *try_path = g_build_filename(dirs[i], "gtkbar", "style.css", NULL);
+        if (g_file_test(try_path, G_FILE_TEST_EXISTS)) {
+            return try_path; // Caller must g_free()
+        }
+        g_free(try_path);
+    }
+    return NULL;
+}
+
 int bar(int *argc, char *(*argv[]), GtkWidget *window, GdkMonitor *monitor) {
 
     {
@@ -35,6 +47,17 @@ int bar(int *argc, char *(*argv[]), GtkWidget *window, GdkMonitor *monitor) {
         } AppArgs;
         AppArgs args;
         args.css_path = strdup("/usr/share/gtkbar/style.css");
+
+        char *path = find_style_css_path();
+        if (path) {
+            gtk_css_provider_load_from_path(provider, path);
+            args.css_path = path;
+        } else {
+            g_warning("Could not find style.css in system data dirs.");
+        }
+
+
+
         if (*argc > 1) {
             for (int i = 0; i < *argc; i++) {
                 if (strcmp((*argv)[i], "--css-path") == 0) {
