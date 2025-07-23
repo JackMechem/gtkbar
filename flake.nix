@@ -29,11 +29,8 @@
             pkgs.cjson
             pkgs.networkmanager.dev
             pkgs.libpulseaudio
+            pkgs.wrapGAppsHook4
           ];
-          postInstall = ''
-              wrapProgram "$out/bin/gtkbar" \
-                --prefix XDG_DATA_DIRS : "$out/share"
-        '';
         };
       in {
         packages.default = gtkbar;
@@ -44,6 +41,7 @@
             pkgs.meson
             pkgs.ninja
             pkgs.makeWrapper
+            pkgs.wrapGAppsHook4
           ];
           buildInputs = [
             pkgs.gtk4
